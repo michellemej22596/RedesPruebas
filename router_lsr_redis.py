@@ -70,7 +70,7 @@ class LinkStateRouterRedis:
             print(f"[{self.node_id}] 📡 Enviando HELLO a vecinos: {self.neighbors}")
             for neigh in self.neighbors:
                 ch = get_channel(neigh)
-                pkt = make_packet("hello", self.channel_local, ch, hops=1, alg="dijkstra", payload="HELLO")
+                pkt = make_packet("hello", self.channel_local, ch, hops=1, alg="lsr", payload="HELLO")
                 self.transport.publish(ch, pkt)
                 print(f"[{self.node_id}] 📤 HELLO → {neigh} ({ch})")
         finally:
@@ -79,7 +79,7 @@ class LinkStateRouterRedis:
     def _emit_lsp(self):
         try:
             neighbors_costs = {n: 1 for n in self.neighbors}
-            lsp = make_packet("lsp", self.channel_local, "*", hops=8, alg="dijkstra", 
+            lsp = make_packet("lsp", self.channel_local, "*", hops=8, alg="lsr", 
                               neighbors=[get_channel(n) for n in self.neighbors], payload="")
             lsp["originator"] = self.node_id
             lsp["neighbors"] = neighbors_costs
@@ -115,7 +115,7 @@ class LinkStateRouterRedis:
             self.neighbors.append(sender_node)
             print(f"[{self.node_id}] ✨ Novo vizinho descoberto: {sender_node}")
 
-        ack = make_packet("hello_ack", self.channel_local, sender_ch, hops=1, alg="dijkstra", payload="HELLO_ACK")
+        ack = make_packet("hello_ack", self.channel_local, sender_ch, hops=1, alg="lsr", payload="HELLO_ACK")
         self.transport.publish(sender_ch, ack)
         print(f"[{self.node_id}] 📤 HELLO_ACK enviado a {sender_node}")
 
@@ -200,7 +200,7 @@ class LinkStateRouterRedis:
 
     # ---------- API de envio ----------
     def send(self, dst_node: str, payload: str, hops: int = 8) -> None:
-        pkt = make_packet("message", self.channel_local, get_channel(dst_node), hops=hops, alg="dijkstra", payload=payload)
+        pkt = make_packet("message", self.channel_local, get_channel(dst_node), hops=hops, alg="lsr", payload=payload)
         nh = self._get_next_hop(dst_node)
         if nh:
             self._forward_packet(pkt, nh)
