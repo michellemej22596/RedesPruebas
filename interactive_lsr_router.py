@@ -93,7 +93,7 @@ class InteractiveLSRRouter:
         try:
             for neigh in self.neighbors:
                 ch = get_channel(neigh)
-                pkt = make_packet("hello", self.channel_local, ch, hops=1, payload="HELLO")
+                pkt = make_packet("hello", self.channel_local, ch, hops=1, alg="lsr", payload="HELLO")
                 self.transport.publish(ch, pkt)
                 print(f"📡 [{self.node_id}] HELLO automático → {neigh}")
         finally:
@@ -103,11 +103,10 @@ class InteractiveLSRRouter:
         """Envía LSPs periódicos con información de vecinos"""
         try:
             neighbors_costs = {n: 1 for n in self.neighbors}
-            lsp = make_packet("lsp", self.channel_local, "*", hops=8,
-                              headers=[{"id": f"LSP-{self.node_id}-{self.sequence_number}"}],
-                              payload="")
+            lsp = make_packet("lsp", self.channel_local, "*", hops=8, alg="lsr", payload="")
             lsp["originator"] = self.node_id
             lsp["neighbors"] = neighbors_costs
+            lsp["headers"] = [{"id": f"LSP-{self.node_id}-{self.sequence_number}"}]
             self.sequence_number += 1
             self._flood_lsp(lsp)
             print(f"📢 [{self.node_id}] LSP automático enviado (seq: {self.sequence_number-1})")
@@ -145,7 +144,7 @@ class InteractiveLSRRouter:
                 print(f"🔍 [{self.node_id}] Nuevo vecino descubierto: {sender_node}")
 
         # Responder con HELLO_ACK
-        ack = make_packet("hello_ack", self.channel_local, sender_ch, hops=1, payload="HELLO_ACK")
+        ack = make_packet("hello_ack", self.channel_local, sender_ch, hops=1, alg="lsr", payload="HELLO_ACK")
         self.transport.publish(sender_ch, ack)
 
     def _handle_lsp(self, packet: Dict[str, Any]) -> None:
@@ -240,7 +239,7 @@ class InteractiveLSRRouter:
             self.broadcast_message(payload, hops)
             return
 
-        pkt = make_packet("message", self.channel_local, get_channel(dst_node), hops=hops, payload=payload)
+        pkt = make_packet("message", self.channel_local, get_channel(dst_node), hops=hops, alg="lsr", payload=payload)
         next_hop = self._get_next_hop(dst_node)
         
         if next_hop:
@@ -254,14 +253,14 @@ class InteractiveLSRRouter:
 
     def broadcast_message(self, payload: str, hops: int = 8) -> None:
         """Envía mensaje broadcast a todos los nodos"""
-        pkt = make_packet("message", self.channel_local, "*", hops=hops, payload=payload)
+        pkt = make_packet("message", self.channel_local, "*", hops=hops, alg="lsr", payload=payload)
         for neigh in self.neighbors:
             self.transport.publish(get_channel(neigh), pkt)
         print(f"📡 [{self.node_id}] Broadcast enviado a todos los vecinos")
 
     def send_hello(self, dst_node: str) -> None:
         """Envía HELLO manual a un nodo específico"""
-        pkt = make_packet("hello", self.channel_local, get_channel(dst_node), hops=1, payload="HELLO")
+        pkt = make_packet("hello", self.channel_local, get_channel(dst_node), hops=1, alg="lsr", payload="HELLO")
         self.transport.publish(get_channel(dst_node), pkt)
         print(f"👋 [{self.node_id}] HELLO manual enviado a {dst_node}")
 
@@ -353,19 +352,19 @@ def main():
     try:
         router.start()
         print_help()
-
+        
         # Esperar un poco para que se establezcan conexiones
         time.sleep(2)
-
+        
         while True:
             try:
                 cmd = input(f"[{node}]> ").strip()
                 if not cmd:
                     continue
-
+                    
                 parts = cmd.split(None, 2)
                 action = parts[0].lower()
-
+                
                 if action in ["quit", "exit"]:
                     break
                 elif action == "help":
@@ -393,12 +392,12 @@ def main():
                     router.show_status()
                 else:
                     print("❌ Comando desconocido. Usa 'help' para ver comandos disponibles.")
-
+                    
             except EOFError:
                 break
             except KeyboardInterrupt:
                 break
-
+                
     except KeyboardInterrupt:
         pass
     finally:
