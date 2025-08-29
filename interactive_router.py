@@ -31,6 +31,8 @@ class InteractiveRouter:
     def __init__(self, node_id: str, graph: Dict[str, Dict[str, float]], algorithm: str = "flooding"):
         self.node_id = node_id
         self.algorithm = algorithm
+        self._hello_thread_started = False
+
         
         # Inicializar el router según el algoritmo seleccionado
         if algorithm == "flooding":
@@ -52,6 +54,12 @@ class InteractiveRouter:
         router_thread = threading.Thread(target=self.router.start, daemon=True)
         router_thread.start()
         
+        # Iniciar el hilo HELLO automático desde el principio
+        if not self._hello_thread_started:
+            self._hello_thread_started = True
+            threading.Thread(target=self._hello_loop, daemon=True).start()
+
+
         # Esperar un momento para que se establezca la conexión
         time.sleep(2)
         
@@ -60,6 +68,7 @@ class InteractiveRouter:
         
         # Iniciar interfaz interactiva
         self.interactive_loop()
+
 
     def show_help(self):
         """Muestra el menú de ayuda"""
@@ -114,9 +123,14 @@ class InteractiveRouter:
         parts = cmd.split()
         if not parts:
             return
-            
+
         command = parts[0].lower()
-        
+
+        # 🆕 Iniciar HELLO automático solo una vez
+        if not self._hello_thread_started:
+            self._hello_thread_started = True
+            threading.Thread(target=self._hello_loop, daemon=True).start()
+
         if command == "send":
             if len(parts) < 3:
                 print("❌ Uso: send <destino> <mensaje>")
@@ -124,21 +138,21 @@ class InteractiveRouter:
             dest = parts[1]
             message = " ".join(parts[2:])
             self.send_message(dest, message, "message")
-            
+
         elif command == "broadcast":
             if len(parts) < 2:
                 print("❌ Uso: broadcast <mensaje>")
                 return
             message = " ".join(parts[1:])
             self.send_message("*", message, "message")
-            
+
         elif command == "hello":
             if len(parts) < 2:
                 print("❌ Uso: hello <destino>")
                 return
             dest = parts[1]
             self.send_message(dest, f"HELLO from {self.node_id}", "hello")
-            
+
         elif command == "info":
             if len(parts) < 2:
                 print("❌ Uso: info <destino>")
@@ -151,7 +165,7 @@ class InteractiveRouter:
                 "timestamp": time.time()
             }
             self.send_info_message(dest, info_data)
-            
+
         elif command == "echo":
             if len(parts) < 3:
                 print("❌ Uso: echo <destino> <mensaje>")
@@ -159,25 +173,25 @@ class InteractiveRouter:
             dest = parts[1]
             message = " ".join(parts[2:])
             self.send_message(dest, message, "echo")
-            
+
         elif command == "show":
             if len(parts) < 2:
                 print("❌ Uso: show <lsdb|routes>")
                 return
             self.show_lsr_info(parts[1])
-            
+
         elif command == "status":
             self.show_status()
-            
+
         elif command == "nodes":
             self.show_nodes()
-            
+
         elif command == "help":
             self.show_help()
-            
+
         elif command in ["quit", "exit", "q"]:
             raise KeyboardInterrupt
-            
+
         else:
             print(f"❌ Comando desconocido: {command}")
             print("💡 Escribe 'help' para ver los comandos disponibles")
@@ -257,6 +271,16 @@ class InteractiveRouter:
         for node_id, channel in NODE_TO_CHANNEL.items():
             status = "🟢 (YO)" if node_id == self.node_id else "⚪"
             print(f"  {status} {node_id} -> {channel}")
+
+    def _hello_loop(self):
+        """Envia HELLO a todos los vecinos cada 5 segundos"""
+        while True:
+            try:
+                for neighbor in self.router.neighbors:
+                    self.send_message(neighbor, f"HELLO from {self.node_id}", "hello")
+                time.sleep(5)
+            except Exception as e:
+                print(f"❌ Error en loop HELLO: {e}")
 
 
 def main():

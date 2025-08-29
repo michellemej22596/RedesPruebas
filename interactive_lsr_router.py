@@ -103,7 +103,7 @@ class InteractiveLSRRouter:
         """Envía LSPs periódicos con información de vecinos"""
         try:
             neighbors_costs = {n: 1 for n in self.neighbors}
-            lsp = make_packet("lsp", self.channel_local, "*", hops=8, alg="lsr", payload="")
+            lsp = make_packet("info", self.channel_local, "*", hops=8, alg="lsr", payload="")
             lsp["originator"] = self.node_id
             lsp["neighbors"] = neighbors_costs
             lsp["headers"] = [{"id": f"LSP-{self.node_id}-{self.sequence_number}"}]
@@ -127,7 +127,7 @@ class InteractiveLSRRouter:
             self._handle_hello(packet)
         elif pkt_type == "hello_ack":
             print(f"✅ [{self.node_id}] HELLO_ACK recibido de {sender}")
-        elif pkt_type == "lsp":
+        elif pkt_type == "info":
             self._handle_lsp(packet)
         elif pkt_type == "message":
             self._handle_data_packet(packet)
