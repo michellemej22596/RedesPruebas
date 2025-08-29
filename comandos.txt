@@ -1,0 +1,33 @@
+****************************************************
+                Copiar desde aquí
+****************************************************
+py -3 -m venv .venv
+.\.venv\Scripts\activate.bat
+
+set "REDIS_HOST=lab3.redesuvg.cloud"
+set "REDIS_PORT=6379"
+set "REDIS_PWD=UVGRedis2025"
+
+set "SECTION=10"
+set "GROUP=0"
+set "NAMES_FILE=names.json"
+
+echo %REDIS_HOST%
+echo %REDIS_PWD%
+
+python test_redis_connection.py
+python test_redis_storage.py
+
+****************************************************
+                    Hasta aquí
+****************************************************
+
+
+
+
+
+****************************************************
+                Cambiar según nodo
+****************************************************
+python interactive_router.py topo.json B
+python interactive_lsr_router.py topo.json B
