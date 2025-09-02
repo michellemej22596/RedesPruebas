@@ -104,9 +104,8 @@ class InteractiveLSRRouter:
         try:
             neighbors_costs = {get_channel(n): 1 for n in self.neighbors}
             lsp = make_packet("info", self.channel_local, "*", hops=8, alg="lsr", payload="")
-            lsp["originator"] = self.node_id
             lsp["neighbors"] = neighbors_costs
-            lsp["headers"] = [{"id": f"LSP-{self.node_id}-{self.sequence_number}"}]
+            lsp["headers"] = {"id": f"LSP-{self.node_id}-{self.sequence_number}"}
             self.sequence_number += 1
             self._flood_lsp(lsp)
             print(f"📢 [{self.node_id}] LSP automático enviado (seq: {self.sequence_number-1})")
@@ -154,7 +153,7 @@ class InteractiveLSRRouter:
             return
         
         self.seen_lsp_ids.add(lsp_id)
-        originator = packet.get("originator", "")
+        originator = channel_to_node(packet.get("from", ""))
         if not originator:
             return
 
