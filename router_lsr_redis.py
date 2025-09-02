@@ -79,7 +79,7 @@ class LinkStateRouterRedis:
     def _emit_lsp(self):
         try:
             neighbors_costs = {n: 1 for n in self.neighbors}
-            lsp = make_packet("lsp", self.channel_local, "*", hops=8, alg="lsr", 
+            lsp = make_packet("info", self.channel_local, "*", hops=8, alg="lsr", 
                               neighbors=[get_channel(n) for n in self.neighbors], payload="")
             lsp["originator"] = self.node_id
             lsp["neighbors"] = neighbors_costs
@@ -100,7 +100,7 @@ class LinkStateRouterRedis:
             self._handle_hello(packet)
         elif packet["type"] == "hello_ack":
             self._handle_hello_ack(packet)
-        elif packet["type"] == "lsp":
+        elif packet["type"] == "info":
             self._handle_lsp(packet)
         elif packet["type"] == "message":
             self._handle_data_packet(packet)

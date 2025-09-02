@@ -102,7 +102,7 @@ class InteractiveLSRRouter:
     def _emit_lsp(self):
         """Envía LSPs periódicos con información de vecinos"""
         try:
-            neighbors_costs = {n: 1 for n in self.neighbors}
+            neighbors_costs = {get_channel(n): 1 for n in self.neighbors}
             lsp = make_packet("info", self.channel_local, "*", hops=8, alg="lsr", payload="")
             lsp["originator"] = self.node_id
             lsp["neighbors"] = neighbors_costs
